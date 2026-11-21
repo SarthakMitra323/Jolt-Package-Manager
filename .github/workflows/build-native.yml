@@ -41,6 +41,7 @@ jobs:
         run: |
           native-image `
             -O3 `
+            -march=compatibility `
             --gc=serial `
             --no-fallback `
             --enable-url-protocols=https,http `
