@@ -1,0 +1,7 @@
+$wfPath = "$PWD\.github\workflows\build-native.yml"
+$wf = [System.IO.File]::ReadAllText($wfPath)
+if ($wf -notmatch "-march=compatibility") {
+    $wf =$wf.Replace("-O3 ``", "-O3 ```r`n            -march=compatibility ``")
+    [System.IO.File]::WriteAllText($wfPath, $wf, (New-Object System.Text.UTF8Encoding($false)))
+    Write-Host "[OK] Added -march=compatibility to build-native.yml. Commit and push to rebuild fast.exe." -ForegroundColor Green
+}
