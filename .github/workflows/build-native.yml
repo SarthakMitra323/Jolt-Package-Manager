@@ -1,0 +1,62 @@
+name: Build Jolt Native (.exe)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-windows-native:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Jolt
+        uses: actions/checkout@v4
+
+      - name: Set up GraalVM 21
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compile, Run Unit Tests & Package jolt.jar
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path build\classes, build\native | Out-Null
+          $sources = Get-ChildItem -Path src\main\java, src\test\java -Recurse -Filter *.java | ForEach-Object { $_.FullName }
+          javac -d build\classes $sources
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          # Run all unit test suites before building native image
+          java -ea -cp build\classes dev.jolt.Phase2CoreTest
+          java -ea -cp build\classes dev.jolt.Phase3ResolverTest
+          java -ea -cp build\classes dev.jolt.Phase4InstallerTest
+          java -ea -cp build\classes dev.jolt.Phase5And6Test
+
+          # Package main classes into jolt.jar
+          jar --create --file build\jolt.jar --main-class dev.jolt.Main -C build\classes .
+
+      - name: Compile Standalone Native fast.exe
+        shell: pwsh
+        run: |
+          native-image `
+            -O3 `
+            --gc=serial `
+            --no-fallback `
+            --enable-url-protocols=https,http `
+            -R:MinHeapSize=16m `
+            -R:MaxHeapSize=512m `
+            -cp build\jolt.jar `
+            dev.jolt.Main `
+            -o build\native\fast
+
+      - name: Smoke Test fast.exe
+        shell: pwsh
+        run: |
+          .\build\native\fast.exe --help
+
+      - name: Upload fast.exe Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jolt-windows-x64
+          path: build/native/fast.exe
