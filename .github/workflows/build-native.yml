@@ -1,9 +1,13 @@
-name: Build Jolt Native (.exe)
+name: Build & Release Jolt Native (.exe)
 
 on:
   push:
     branches: [ main ]
+    tags: [ 'v*' ]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build-windows-native:
@@ -23,17 +27,15 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path build\classes, build\native | Out-Null
-          $sources = Get-ChildItem -Path src\main\java, src\test\java -Recurse -Filter *.java | ForEach-Object { $_.FullName }
+          $sources = Get-ChildItem -Path src\main\java, src\test\java -Recurse -Filter *.java \vert{} ForEach-Object {$_.FullName }
           javac -d build\classes $sources
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($LASTEXITCODE -ne 0) { exit$LASTEXITCODE }
 
-          # Run all unit test suites before building native image
           java -ea -cp build\classes dev.jolt.Phase2CoreTest
           java -ea -cp build\classes dev.jolt.Phase3ResolverTest
           java -ea -cp build\classes dev.jolt.Phase4InstallerTest
           java -ea -cp build\classes dev.jolt.Phase5And6Test
 
-          # Package main classes into jolt.jar
           jar --create --file build\jolt.jar --main-class dev.jolt.Main -C build\classes .
 
       - name: Compile Standalone Native fast.exe
@@ -51,13 +53,27 @@ jobs:
             dev.jolt.Main `
             -o build\native\fast
 
-      - name: Smoke Test fast.exe
+      - name: Smoke Test & Generate SHA256SUMS.txt
         shell: pwsh
         run: |
           .\build\native\fast.exe --help
+          Copy-Item build\native\fast.exe build\native\fast-windows-x64.exe -Force
+          $hash = (Get-FileHash build\native\fast-windows-x64.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  fast-windows-x64.exe" | Out-File -FilePath build\native\SHA256SUMS.txt -Encoding ascii -NoNewline
 
-      - name: Upload fast.exe Artifact
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: jolt-windows-x64
-          path: build/native/fast.exe
+          path: |
+            build/native/fast-windows-x64.exe
+            build/native/SHA256SUMS.txt
+
+      - name: Publish GitHub Release (on v* tags)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            build/native/fast-windows-x64.exe
+            build/native/SHA256SUMS.txt
