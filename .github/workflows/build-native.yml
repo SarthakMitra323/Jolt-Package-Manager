@@ -26,10 +26,10 @@ jobs:
       - name: Compile, Run Unit Tests & Package jolt.jar
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path build\classes, build\native | Out-Null
-          $sources = Get-ChildItem -Path src\main\java, src\test\java -Recurse -Filter *.java \vert{} ForEach-Object {$_.FullName }
+          $null = New-Item -ItemType Directory -Force -Path build\classes, build\native
+          $sources = (Get-ChildItem -Path src\main\java, src\test\java -Recurse -Filter *.java).FullName
           javac -d build\classes $sources
-          if ($LASTEXITCODE -ne 0) { exit$LASTEXITCODE }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
           java -ea -cp build\classes dev.jolt.Phase2CoreTest
           java -ea -cp build\classes dev.jolt.Phase3ResolverTest
@@ -59,7 +59,7 @@ jobs:
           .\build\native\fast.exe --help
           Copy-Item build\native\fast.exe build\native\fast-windows-x64.exe -Force
           $hash = (Get-FileHash build\native\fast-windows-x64.exe -Algorithm SHA256).Hash.ToLowerInvariant()
-          "$hash  fast-windows-x64.exe" | Out-File -FilePath build\native\SHA256SUMS.txt -Encoding ascii -NoNewline
+          [System.IO.File]::WriteAllText("$PWD\build\native\SHA256SUMS.txt", "$hash  fast-windows-x64.exe")
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
