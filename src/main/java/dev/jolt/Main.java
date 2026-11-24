@@ -3,6 +3,7 @@ package dev.jolt;
 import dev.jolt.cache.BinaryMetaCache;
 import dev.jolt.cli.CliConfig;
 import dev.jolt.cli.RequirementsParser;
+import dev.jolt.cli.SelfUpdater;
 import dev.jolt.env.PythonEnvironment;
 import dev.jolt.env.VenvCreator;
 import dev.jolt.installer.DownloadEngine;
@@ -30,10 +31,21 @@ public final class Main {
 
     public static void main(String[] args) {
         final long startNanos = System.nanoTime();
+        SelfUpdater.cleanupOldBinary();
         try {
             CliConfig config = CliConfig.parse(args);
             if (config.command == CliConfig.Command.HELP) {
                 printHelp();
+                return;
+            }
+
+            if (config.command == CliConfig.Command.SELF_UPDATE) {
+                SelfUpdater.run(config.quiet);
+                if (!config.quiet) {
+                    double ms = (System.nanoTime() - startNanos) / 1_000_000.0;
+                    System.out.printf("\u001B[32m[OK]\u001B[0m Completed in %.2f ms%n", ms);
+                }
+                System.exit(0);
                 return;
             }
 
@@ -279,6 +291,7 @@ public final class Main {
                   list                   List installed packages
                   freeze                 Output installed packages in requirements format
                   cache clear            Purge global metadata and unpacked wheel caches
+                  self-update            Update fast.exe from GitHub Releases (SHA-256 verified)
                 """);
     }
 }
