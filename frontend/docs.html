@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Documentation — Jolt (fast) Python Package Manager</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="docs">
+  <div class="bg-grid"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <header class="navbar">
+    <div class="container nav-inner">
+      <a href="index.html" class="brand">
+        <img src="favicon.svg" alt="Jolt logo" />
+        <span>Jolt</span>
+        <span class="brand-tag">Docs</span>
+      </a>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="index.html#benchmarks">Benchmarks</a>
+        <a href="index.html#download">Download</a>
+        <a href="docs.html" class="active">Documentation</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-glass btn-sm" href="https://github.com/SarthakMitra323/Jolt-Package-Manager" target="_blank" rel="noopener">GitHub</a>
+        <a class="btn btn-primary btn-sm" href="index.html#download">Install fast</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="container docs-layout">
+    <!-- Sidebar -->
+    <aside class="docs-sidebar">
+      <input type="search" id="docs-search" class="docs-search" placeholder="Filter docs sections..." aria-label="Filter docs" />
+      <nav class="docs-nav" id="docs-nav">
+        <div class="docs-nav-group">Getting Started</div>
+        <a href="#installation" class="active">Installation &amp; Uninstall</a>
+        <a href="#quickstart">One-Command Init</a>
+        <a href="#migration">Switching from pip / uv</a>
+
+        <div class="docs-nav-group">Reference</div>
+        <a href="#cli">CLI Commands &amp; Flags</a>
+        <a href="#pyproject">pyproject.toml &amp; Extras</a>
+        <a href="#self-update">Self-Update</a>
+
+        <div class="docs-nav-group">Internals</div>
+        <a href="#architecture">Architecture Deep-Dive</a>
+        <a href="#benchmarks">Benchmark Methodology</a>
+        <a href="#security">Security Model</a>
+        <a href="#build">Building from Source</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="docs-content">
+      <section class="doc-section" id="installation">
+        <h1>Jolt (<span class="gradient-text">fast</span>) Documentation</h1>
+        <p>Jolt is a standalone, zero-dependency Python package installer, virtual environment creator, and PubGrub dependency resolver written in pure Java 21 and compiled ahead-of-time to native machine code via GraalVM Native Image.</p>
+
+        <h3>Install on Windows (Recommended)</h3>
+        <p>Installs <span class="inline-code">fast.exe</span> into <span class="inline-code">%LOCALAPPDATA%\jolt\bin</span>, verifies its SHA-256 hash against <span class="inline-code">SHA256SUMS.txt</span>, and adds it to your User PATH—no Administrator rights needed.</p>
+        <div class="code-block">
+          <button class="copy-btn" data-copy="irm https://raw.githubusercontent.com/SarthakMitra323/Jolt-Package-Manager/main/install.ps1 | iex">Copy</button>
+          <pre>irm https://raw.githubusercontent.com/SarthakMitra323/Jolt-Package-Manager/main/install.ps1 | iex</pre>
+        </div>
+
+        <h3>Verify Installation</h3>
+        <div class="code-block">
+          <button class="copy-btn" data-copy="fast --help">Copy</button>
+          <pre>fast --help</pre>
+        </div>
+
+        <h3>Clean Uninstall</h3>
+        <p>Removes <span class="inline-code">fast.exe</span> and strips its entry from your User PATH cleanly:</p>
+        <div class="code-block">
+          <button class="copy-btn" data-copy="irm https://raw.githubusercontent.com/SarthakMitra323/Jolt-Package-Manager/main/uninstall.ps1 | iex">Copy</button>
+          <pre>irm https://raw.githubusercontent.com/SarthakMitra323/Jolt-Package-Manager/main/uninstall.ps1 | iex</pre>
+        </div>
+      </section>
+
+      <section class="doc-section" id="quickstart">
+        <h2>One-Command Project Setup (<span class="inline-code">fast init</span>)</h2>
+        <p>Inside any existing Python project, run <span class="inline-code">fast init</span>. Jolt automatically:</p>
+        <ul>
+          <li>Detects an existing <span class="inline-code">.venv</span> or creates a brand-new PEP 405 virtual environment directly (skipping slow <span class="inline-code">ensurepip</span>).</li>
+          <li>Detects <span class="inline-code">requirements.txt</span> (handling comments, nested <span class="inline-code">-r</span> includes, line continuations, and <span class="inline-code">--hash</span> lockfiles).</li>
+          <li>Falls back to <span class="inline-code">pyproject.toml</span> (<span class="inline-code">[project.dependencies]</span>) automatically when <span class="inline-code">requirements.txt</span> is absent.</li>
+          <li>Resolves, downloads, verifies SHA-256, and hardlinks all packages into <span class="inline-code">.venv</span>.</li>
+        </ul>
+        <div class="code-block">
+          <button class="copy-btn" data-copy="fast init">Copy</button>
+          <pre># Auto-detect requirements.txt or pyproject.toml, create .venv, and install
+fast init
+
+# Or include optional dependency groups from pyproject.toml
+fast init --extra dev
+fast init --all-extras</pre>
+        </div>
+      </section>
+
+      <section class="doc-section" id="migration">
+        <h2>Switching from <span class="inline-code">pip</span> or <span class="inline-code">uv</span></h2>
+        <p>Jolt produces 100% PEP 376, PEP 405, and PEP 427 compliant virtual environments, so any tool or IDE (VS Code, PyCharm, pytest) works with Jolt environments out of the box.</p>
+        <div class="doc-table-wrap">
+          <table class="doc-table">
+            <thead>
+              <tr>
+                <th>Action</th>
+                <th>pip</th>
+                <th>uv</th>
+                <th>Jolt (fast)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Initialize project</td><td><code>python -m venv .venv &amp;&amp; pip install -r requirements.txt</code></td><td><code>uv venv &amp;&amp; uv pip install -r requirements.txt</code></td><td><code>fast init</code></td></tr>
+              <tr><td>Create venv</td><td><code>python -m venv .venv</code></td><td><code>uv venv</code></td><td><code>fast venv</code></td></tr>
+              <tr><td>Install packages</td><td><code>pip install requests numpy</code></td><td><code>uv pip install requests numpy</code></td><td><code>fast install requests numpy</code></td></tr>
+              <tr><td>Install from file</td><td><code>pip install -r requirements.txt</code></td><td><code>uv pip install -r requirements.txt</code></td><td><code>fast install -r requirements.txt</code></td></tr>
+              <tr><td>Sync environment</td><td><code>pip install -r requirements.txt</code></td><td><code>uv pip sync requirements.txt</code></td><td><code>fast sync requirements.txt</code></td></tr>
+              <tr><td>Uninstall packages</td><td><code>pip uninstall requests</code></td><td><code>uv pip uninstall requests</code></td><td><code>fast uninstall requests</code></td></tr>
+              <tr><td>Update packages</td><td><code>pip install -U requests</code></td><td><code>uv pip install -U requests</code></td><td><code>fast update requests</code></td></tr>
+              <tr><td>List installed</td><td><code>pip list</code></td><td><code>uv pip list</code></td><td><code>fast list</code></td></tr>
+              <tr><td>Freeze lock output</td><td><code>pip freeze</code></td><td><code>uv pip freeze</code></td><td><code>fast freeze</code></td></tr>
+              <tr><td>Clear global cache</td><td><code>pip cache purge</code></td><td><code>uv cache clean</code></td><td><code>fast cache clear</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="doc-section" id="cli">
+        <h2>CLI Commands &amp; Flags</h2>
+        <div class="doc-table-wrap">
+          <table class="doc-table">
+            <thead>
+              <tr><th>Command</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>fast init [file]</code></td><td>Create/reuse <span class="inline-code">.venv</span> and install from <span class="inline-code">requirements.txt</span> or <span class="inline-code">pyproject.toml</span>.</td></tr>
+              <tr><td><code>fast venv [path]</code></td><td>Create a PEP 405 virtual environment directly (defaults to <span class="inline-code">.venv</span>).</td></tr>
+              <tr><td><code>fast install &lt;pkg...&gt;</code></td><td>Resolve and install packages (alias: <span class="inline-code">fast i</span>).</td></tr>
+              <tr><td><code>fast uninstall &lt;pkg...&gt;</code></td><td>Remove installed packages cleanly using PEP 376 <span class="inline-code">RECORD</span> manifests (aliases: <span class="inline-code">remove</span>, <span class="inline-code">rm</span>).</td></tr>
+              <tr><td><code>fast sync &lt;reqs.txt&gt;</code></td><td>Synchronize environment with a requirements file.</td></tr>
+              <tr><td><code>fast update [pkg...]</code></td><td>Bypass metadata cache and upgrade specified or all installed packages.</td></tr>
+              <tr><td><code>fast list</code></td><td>Display installed packages and versions (alias: <span class="inline-code">ls</span>).</td></tr>
+              <tr><td><code>fast freeze</code></td><td>Print installed packages in <span class="inline-code">name==version</span> format.</td></tr>
+              <tr><td><code>fast cache clear</code></td><td>Purge Jolt's binary metadata cache and content-addressed wheel store.</td></tr>
+              <tr><td><code>fast self-update</code></td><td>Check GitHub Releases, verify <span class="inline-code">SHA256SUMS.txt</span>, and update <span class="inline-code">fast.exe</span> atomically.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Common Flags</h3>
+        <ul>
+          <li><span class="inline-code">-r, --requirement &lt;file&gt;</span> — Install dependencies from <span class="inline-code">requirements.txt</span> or <span class="inline-code">pyproject.toml</span>.</li>
+          <li><span class="inline-code">--extra &lt;group&gt;</span> — Install an optional dependency group from <span class="inline-code">pyproject.toml</span> (repeatable or comma-separated, e.g. <span class="inline-code">--extra dev,test</span>).</li>
+          <li><span class="inline-code">--all-extras</span> — Install all <span class="inline-code">[project.optional-dependencies]</span> groups.</li>
+          <li><span class="inline-code">-p, --venv, --python &lt;path&gt;</span> — Target a specific virtual environment directory.</li>
+          <li><span class="inline-code">-j, --jobs &lt;n&gt;</span> — Override max parallel HTTP/download concurrency.</li>
+          <li><span class="inline-code">--no-cache</span> — Force fresh metadata resolution from PyPI.</li>
+          <li><span class="inline-code">-v, --verbose</span> / <span class="inline-code">-q, --quiet</span> — Print microsecond timing diagnostics or suppress output.</li>
+        </ul>
+      </section>
+
+      <section class="doc-section" id="pyproject">
+        <h2><span class="inline-code">pyproject.toml</span> &amp; Optional Extras</h2>
+        <p>Jolt ships a zero-dependency character-level TOML scanner supporting PEP 621 <span class="inline-code">[project.dependencies]</span> and <span class="inline-code">[project.optional-dependencies]</span> with PEP 685 extra name normalization.</p>
+        <div class="code-block">
+          <button class="copy-btn" data-copy="fast init --extra dev,test">Copy</button>
+          <pre># Install base dependencies only
+fast init
+
+# Install base + dev + test optional groups
+fast init --extra dev,test
+
+# Install base + every optional group
+fast init --all-extras</pre>
+        </div>
+      </section>
+
+      <section class="doc-section" id="self-update">
+        <h2>Atomic <span class="inline-code">fast self-update</span></h2>
+        <p>Keep your native binary up to date without re-running PowerShell scripts. <span class="inline-code">SelfUpdater</span> checks GitHub's <span class="inline-code">/releases/latest</span> redirect (zero GitHub API rate limits), compares your local binary's SHA-256 against <span class="inline-code">SHA256SUMS.txt</span>, and short-circuits immediately if you are already on the latest build.</p>
+        <div class="callout">
+          <strong>Windows Safe Rename-Swap:</strong> Because Windows locks running executables against overwrites, Jolt streams the verified update to <span class="inline-code">fast.exe.new</span>, renames the running binary to <span class="inline-code">fast.exe.old</span>, moves <span class="inline-code">fast.exe.new</span> into place (with automatic rollback on error), and cleans up <span class="inline-code">fast.exe.old</span> on the next invocation.
+        </div>
+      </section>
+
+      <section class="doc-section" id="architecture">
+        <h2>Architecture Deep-Dive</h2>
+        <div class="code-block">
+          <pre>+-----------------------------------------------------------------------+
+|                    Zero-Allocation Native CLI (fast)                  |
++-----------------------------------+-----------------------------------+
+                                    |
+          +-------------------------+-------------------------+
+          v                                                   v
++-------------------------+                         +-------------------------+
+| Zero-Spawn Env Prober   |                         | Persistent Binary Cache |
+| - Reads pyvenv.cfg      |                         | - Pre-parsed PEP 691    |
+| - Computes PEP 425 tags |                         | - Content-addressed     |
+| - No python subprocess  |                         |   unpacked Wheel Store  |
++------------+------------+                         +------------+------------+
+             |                                                   |
+             +-------------------------+-------------------------+
+                                       v
++-----------------------------------------------------------------------+
+|              Bitset-Accelerated PubGrub (CDCL) Resolver               |
+| - Zero-regex PEP 440 version comparator &amp; PEP 508 marker AST          |
+| - 64-bit VersionBitSet masks for O(1) constraint intersection         |
+| - Parallel HTTP/2 prefetching + PEP 658 &amp; HTTP Range ZIP reader       |
++-----------------------------------+-----------------------------------+
+                                    v
++-----------------------------------------------------------------------+
+|         Streaming SHA-256 Unpacker &amp; Transactional Hardlinker         |
+| - Inflates HTTP stream directly into cache (0 intermediate .whl)      |
+| - OS-level hardlinks into site-packages (0-byte copy on same volume)  |
+| - PEP 376 RECORD/INSTALLER/console_scripts + atomic rollback journal  |
++-----------------------------------------------------------------------+</pre>
+        </div>
+      </section>
+
+      <section class="doc-section" id="benchmarks">
+        <h2>Benchmark Methodology</h2>
+        <p>All numbers on the landing page were collected on Windows x64 (Python 3.12) using <span class="inline-code">benchmarks/run_benchmarks.py</span>, which clears <span class="inline-code">site-packages</span> between runs and asserts exact package-name and version parity (<span class="inline-code">MATCH</span>) between <span class="inline-code">fast.exe</span> and <span class="inline-code">uv</span>.</p>
+        <div class="doc-table-wrap">
+          <table class="doc-table">
+            <thead>
+              <tr>
+                <th>Workload</th>
+                <th>fast.exe Cold</th>
+                <th>uv Cold</th>
+                <th>fast.exe Warm Med</th>
+                <th>uv Warm Med</th>
+                <th>vs. uv (Warm)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Requests (5 pkgs)</td><td>4,276.2 ms</td><td>3,096.9 ms</td><td><strong>187.1 ms</strong></td><td>194.6 ms</td><td><strong>0.96×</strong></td></tr>
+              <tr><td>FastAPI + Uvicorn (14 pkgs)</td><td>6,049.8 ms</td><td>4,107.4 ms</td><td><strong>334.0 ms</strong></td><td>357.7 ms</td><td><strong>0.93×</strong></td></tr>
+              <tr><td>Django (4 pkgs, ~3,400 files)</td><td>38,184.0 ms</td><td>26,323.8 ms</td><td>2,189.1 ms</td><td><strong>1,891.8 ms</strong></td><td>1.16×</td></tr>
+              <tr><td>NumPy + Pandas + SciPy (5 pkgs)</td><td>52,298.1 ms</td><td>39,501.6 ms</td><td>2,693.7 ms</td><td>2,680.9 ms</td><td><strong>1.00×</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="doc-section" id="security">
+        <h2>Security Model</h2>
+        <ul>
+          <li><strong>User-Space Only:</strong> Installs exclusively into <span class="inline-code">%LOCALAPPDATA%\jolt\bin</span>. Never modifies <span class="inline-code">System32</span>, <span class="inline-code">Program Files</span>, or <span class="inline-code">HKLM</span>.</li>
+          <li><strong>Cryptographic Integrity:</strong> Both <span class="inline-code">install.ps1</span> and <span class="inline-code">fast self-update</span> enforce TLS 1.2+ and refuse to install if the downloaded binary's SHA-256 differs by even a single bit from <span class="inline-code">SHA256SUMS.txt</span>.</li>
+          <li><strong>Wheel Verification:</strong> Every PyPI wheel is SHA-256 verified on-the-fly during streaming inflation before any file is linked into your virtual environment.</li>
+          <li><strong>Zero Persistence Hooks:</strong> No background daemons, no Windows services, no scheduled tasks, and no telemetry.</li>
+        </ul>
+      </section>
+
+      <section class="doc-section" id="build">
+        <h2>Building from Source</h2>
+        <p>Requires <strong>JDK 21+</strong> (and GraalVM 21 for native compilation, or trigger the included <span class="inline-code">.github/workflows/build-native.yml</span> workflow).</p>
+        <div class="code-block">
+          <button class="copy-btn" data-copy="New-Item -ItemType Directory -Force -Path build\classes | Out-Null
+$sources = (Get-ChildItem -Path src\main\java, src\test\java -Recurse -Filter *.java).FullName
+javac -d build\classes $sources
+java -cp build\classes dev.jolt.JarPackager build\classes build\jolt.jar">Copy</button>
+          <pre># 1. Compile and package build\jolt.jar
+New-Item -ItemType Directory -Force -Path build\classes | Out-Null
+$sources = (Get-ChildItem -Path src\main\java, src\test\java -Recurse -Filter *.java).FullName
+javac -d build\classes $sources
+java -cp build\classes dev.jolt.JarPackager build\classes build\jolt.jar
+
+# 2. Build standalone native fast.exe (GraalVM 21)
+native-image -O3 -march=compatibility --gc=serial --no-fallback `
+  --enable-url-protocols=https,http -R:MinHeapSize=16m -R:MaxHeapSize=512m `
+  -cp build\jolt.jar dev.jolt.Main -o build\native\fast</pre>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    <div class="container footer-inner">
+      <div class="brand" style="font-size: 1rem;">
+        <img src="favicon.svg" alt="Jolt" style="width: 24px; height: 24px;" />
+        <span>Jolt Package Manager</span>
+      </div>
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="index.html#benchmarks">Benchmarks</a>
+        <a href="index.html#download">Download</a>
+        <a href="https://github.com/SarthakMitra323/Jolt-Package-Manager" target="_blank" rel="noopener">GitHub</a>
+      </div>
+      <div>MIT License · Pure Java 21 + GraalVM Native Image</div>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast">Copied to clipboard!</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

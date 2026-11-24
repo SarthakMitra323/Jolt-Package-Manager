@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="joltGrad" x1="10" y1="6" x2="54" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="55%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#22d3ee"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="#090d16"/>
+  <rect x="2" y="2" width="60" height="60" rx="14" stroke="url(#joltGrad)" stroke-opacity="0.45" stroke-width="2"/>
+  <path d="M36 9L14 36H30L26 55L50 27H34L36 9Z" fill="url(#joltGrad)"/>
+</svg>

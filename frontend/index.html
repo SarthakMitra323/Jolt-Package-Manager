@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jolt (fast) — Ultra-Fast Native Python Package Installer</title>
+  <meta name="description" content="Zero-dependency Python package installer and PubGrub resolver written in pure Java 21 and compiled to a standalone native binary via GraalVM. 10-18x faster than pip, trading blows with uv." />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="home">
+  <div class="bg-grid"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="container nav-inner">
+      <a href="index.html" class="brand">
+        <img src="favicon.svg" alt="Jolt logo" />
+        <span>Jolt</span>
+        <span class="brand-tag">fast v1.0</span>
+      </a>
+      <nav class="nav-links">
+        <a href="#benchmarks">Benchmarks</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#download">Download</a>
+        <a href="docs.html">Documentation</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-glass btn-sm" href="https://github.com/SarthakMitra323/Jolt-Package-Manager" target="_blank" rel="noopener">GitHub</a>
+        <a class="btn btn-primary btn-sm" href="#download">Install fast</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="hero-grid">
+          <div>
+            <div class="pill-badge hero-anim">
+              <span class="pill-dot"></span>
+              Pure Java 21 · GraalVM Native Binary · Zero Dependencies
+            </div>
+            <h1 class="hero-anim">
+              Python packages at <span class="gradient-text">native speed.</span>
+            </h1>
+            <p class="hero-sub hero-anim">
+              Jolt (<span class="inline-code">fast</span>) is an independent Python package installer, virtual environment creator, and PubGrub resolver. 10–18× faster than <span class="inline-code">pip</span> and beating Rust's <span class="inline-code">uv</span> on warm web stacks—without a single line of Rust or C.
+            </p>
+            <div class="hero-cta hero-anim">
+              <a href="#download" class="btn btn-primary">⚡ Download for Windows</a>
+              <a href="docs.html" class="btn btn-glass">Read the Docs →</a>
+            </div>
+            <div class="cmd-bar hero-anim">
+              <code><span class="cmd-prompt">PS&gt;</span>irm https://raw.githubusercontent.com/SarthakMitra323/Jolt-Package-Manager/main/install.ps1 | iex</code>
+              <button class="copy-btn" data-copy="irm https://raw.githubusercontent.com/SarthakMitra323/Jolt-Package-Manager/main/install.ps1 | iex">Copy</button>
+            </div>
+          </div>
+
+          <!-- Interactive Terminal -->
+          <div class="terminal hero-anim">
+            <div class="terminal-header">
+              <div class="term-dots">
+                <span class="dot-r"></span>
+                <span class="dot-y"></span>
+                <span class="dot-g"></span>
+              </div>
+              <div class="term-tabs">
+                <button class="term-tab active" data-term="init">fast init</button>
+                <button class="term-tab" data-term="install">fast install</button>
+                <button class="term-tab" data-term="update">self-update</button>
+              </div>
+            </div>
+            <div class="terminal-body" id="terminal-output"></div>
+          </div>
+        </div>
+
+        <!-- Key Stats Strip -->
+        <div class="stats-strip">
+          <div class="stat-card reveal">
+            <div class="stat-val gradient-text" data-count="0.93" data-suffix="×" data-decimals="2">0.93×</div>
+            <div class="stat-label">vs. <strong>uv</strong> on warm FastAPI + Uvicorn (334ms vs 357ms)</div>
+          </div>
+          <div class="stat-card reveal">
+            <div class="stat-val gradient-text" data-count="18" data-suffix="×" data-decimals="0">18×</div>
+            <div class="stat-label">Faster than <strong>pip</strong> on real-world dependency graphs</div>
+          </div>
+          <div class="stat-card reveal">
+            <div class="stat-val gradient-text" data-count="2" data-prefix="~" data-suffix=" ms" data-decimals="0">~2 ms</div>
+            <div class="stat-label">Native CLI startup via GraalVM AOT (<span class="inline-code">fast.exe</span>)</div>
+          </div>
+          <div class="stat-card reveal">
+            <div class="stat-val gradient-text" data-count="0" data-suffix="" data-decimals="0">0</div>
+            <div class="stat-label">Third-party runtime dependencies &amp; admin privileges needed</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Benchmarks -->
+    <section id="benchmarks">
+      <div class="container">
+        <div class="section-head reveal">
+          <div class="section-kicker">Empirical Performance</div>
+          <h2>Head-to-Head: <span class="gradient-text">fast.exe</span> vs. uv &amp; pip</h2>
+          <p>Reproducible Windows x64 (Python 3.12) benchmarks with automated installed-package equivalence checks across every workload.</p>
+        </div>
+
+        <div class="bench-panel reveal">
+          <div class="bench-controls">
+            <div class="bench-tabs">
+              <button class="bench-tab active" data-bench="warm">Warm Install (Median)</button>
+              <button class="bench-tab" data-bench="p95">Warm p95 Tail Latency</button>
+              <button class="bench-tab" data-bench="audit">Warm Audit</button>
+              <button class="bench-tab" data-bench="pip">vs. pip Speedup</button>
+            </div>
+            <div class="bench-badge">✓ Env Equivalence: MATCH (4/4)</div>
+          </div>
+
+          <div class="bench-rows" id="bench-rows"></div>
+
+          <div class="bench-note">
+            <span>Lower is better (milliseconds). Measured via <span class="inline-code">benchmarks/run_benchmarks.py</span>.</span>
+            <a href="docs.html#benchmarks" style="color: var(--cyan); font-weight: 600;">View full methodology &amp; cold numbers →</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Architecture Bento -->
+    <section id="architecture">
+      <div class="container">
+        <div class="section-head reveal">
+          <div class="section-kicker">Under the Hood</div>
+          <h2>Engineered from scratch for zero waste</h2>
+          <p>Every millisecond counts. Jolt replaces Python subprocesses, regex engines, and temp-file copies with low-level systems primitives.</p>
+        </div>
+
+        <div class="bento">
+          <div class="bento-card reveal">
+            <div class="bento-icon">⚡</div>
+            <h3>Zero-Spawn Env Prober</h3>
+            <p>Reads <span class="inline-code">pyvenv.cfg</span> directly to compute Python version, ABI (<span class="inline-code">cp312</span>), and PEP 425 tags—saving 30–40ms per run by never spawning <span class="inline-code">python -c</span>.</p>
+          </div>
+          <div class="bento-card reveal">
+            <div class="bento-icon">🧮</div>
+            <h3>Bitset PubGrub Resolver</h3>
+            <p>Zero-regex PEP 440 &amp; PEP 508 scanners paired with 64-bit <span class="inline-code">VersionBitSet</span> masks for O(1) version-range intersections and parallel HTTP/2 prefetching.</p>
+          </div>
+          <div class="bento-card reveal">
+            <div class="bento-icon">📦</div>
+            <h3>HTTP Range ZIP Reader</h3>
+            <p>Fetches PEP 658 <span class="inline-code">.metadata</span> blobs (~1.5 KB) or reads only the last 64 KB of remote wheels via HTTP Range requests to resolve graphs without downloading wheels.</p>
+          </div>
+          <div class="bento-card reveal">
+            <div class="bento-icon">🔗</div>
+            <h3>Streaming SHA-256 &amp; Hardlinks</h3>
+            <p>Verifies SHA-256 digests on-the-fly during ZIP inflation into a content-addressed cache, then OS-hardlinks files into <span class="inline-code">site-packages</span> with atomic rollback.</p>
+          </div>
+          <div class="bento-card reveal">
+            <div class="bento-icon">🛠️</div>
+            <h3>Built-In <span class="inline-code">venv</span> &amp; <span class="inline-code">init</span></h3>
+            <p>Creates PEP 405 virtual environments natively without <span class="inline-code">ensurepip</span>, and reads <span class="inline-code">requirements.txt</span> or <span class="inline-code">pyproject.toml</span> (including <span class="inline-code">--extra</span> groups) in one step.</p>
+          </div>
+          <div class="bento-card reveal">
+            <div class="bento-icon">🛡️</div>
+            <h3>Zero-Backdoor Security</h3>
+            <p>Installs strictly in user-space (<span class="inline-code">%LOCALAPPDATA%\jolt\bin</span>), enforces TLS 1.2+, verifies <span class="inline-code">SHA256SUMS.txt</span>, and uses atomic rename-swaps for <span class="inline-code">fast self-update</span>.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Download & Install Hub -->
+    <section id="download">
+      <div class="container">
+        <div class="section-head reveal">
+          <div class="section-kicker">Get Started in Seconds</div>
+          <h2>Download &amp; Install <span class="gradient-text">Jolt</span></h2>
+          <p>Standalone native Windows x64 binary (<span class="inline-code">-march=compatibility</span>). No JVM installation, no Node.js, and no Administrator rights required.</p>
+        </div>
+
+        <div class="download-grid">
+          <div class="dl-card featured reveal">
+            <h3>Recommended: Secure One-Line Installer (Windows)</h3>
+            <p>Downloads the latest verified release from GitHub Releases, checks cryptographic SHA-256 integrity, and registers <span class="inline-code">fast</span> globally on your User PATH.</p>
+            <div class="cmd-bar" style="max-width: 100%;">
+              <code><span class="cmd-prompt">PS&gt;</span>irm https://raw.githubusercontent.com/SarthakMitra323/Jolt-Package-Manager/main/install.ps1 | iex</code>
+              <button class="copy-btn" data-copy="irm https://raw.githubusercontent.com/SarthakMitra323/Jolt-Package-Manager/main/install.ps1 | iex">Copy</button>
+            </div>
+            <ul class="security-list">
+              <li>No Admin / UAC elevation</li>
+              <li>Mandatory SHA-256 check</li>
+              <li>TLS 1.2+ enforced</li>
+              <li>Zero services or telemetry</li>
+              <li>Clean <span class="inline-code">uninstall.ps1</span></li>
+              <li>Built-in <span class="inline-code">fast self-update</span></li>
+            </ul>
+          </div>
+
+          <div class="dl-card reveal">
+            <h3>Direct Downloads (GitHub Releases)</h3>
+            <p>Prefer manual verification or offline installation? Grab the standalone executable and checksums directly:</p>
+            <div class="asset-list">
+              <a class="asset-row" href="https://github.com/SarthakMitra323/Jolt-Package-Manager/releases/latest/download/fast-windows-x64.exe" target="_blank" rel="noopener">
+                <div>
+                  <div class="asset-name">fast-windows-x64.exe</div>
+                  <div class="asset-desc">Standalone Native Windows x64 Binary</div>
+                </div>
+                <span class="btn btn-primary btn-sm">Download</span>
+              </a>
+              <a class="asset-row" href="https://github.com/SarthakMitra323/Jolt-Package-Manager/releases/latest/download/SHA256SUMS.txt" target="_blank" rel="noopener">
+                <div>
+                  <div class="asset-name">SHA256SUMS.txt</div>
+                  <div class="asset-desc">Cryptographic release checksums</div>
+                </div>
+                <span class="btn btn-glass btn-sm">Verify</span>
+              </a>
+              <a class="asset-row" href="https://raw.githubusercontent.com/SarthakMitra323/Jolt-Package-Manager/main/install.ps1" target="_blank" rel="noopener">
+                <div>
+                  <div class="asset-name">install.ps1 &amp; uninstall.ps1</div>
+                  <div class="asset-desc">Auditable PowerShell installer scripts</div>
+                </div>
+                <span class="btn btn-glass btn-sm">Inspect</span>
+              </a>
+              <a class="asset-row" href="https://github.com/SarthakMitra323/Jolt-Package-Manager/releases" target="_blank" rel="noopener">
+                <div>
+                  <div class="asset-name">All Releases</div>
+                  <div class="asset-desc">Release notes &amp; version history</div>
+                </div>
+                <span class="btn btn-glass btn-sm">Browse →</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-inner">
+      <div class="brand" style="font-size: 1rem;">
+        <img src="favicon.svg" alt="Jolt" style="width: 24px; height: 24px;" />
+        <span>Jolt Package Manager</span>
+      </div>
+      <div class="footer-links">
+        <a href="docs.html">Documentation</a>
+        <a href="docs.html#migration">Migrate from pip/uv</a>
+        <a href="docs.html#security">Security</a>
+        <a href="https://github.com/SarthakMitra323/Jolt-Package-Manager" target="_blank" rel="noopener">GitHub</a>
+      </div>
+      <div>MIT License · Built with Pure Java 21 &amp; GraalVM</div>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast">Copied to clipboard!</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
