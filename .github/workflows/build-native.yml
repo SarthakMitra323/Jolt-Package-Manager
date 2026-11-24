@@ -1,4 +1,4 @@
-name: Build & Release Jolt Native (.exe)
+name: Build & Release Jolt Native (.exe + Installer)
 
 on:
   push:
@@ -53,19 +53,32 @@ jobs:
             dev.jolt.Main `
             -o build\native\fast
 
-      - name: Smoke Test & Generate SHA256SUMS.txt
+      - name: Build Windows GUI Installer (JoltSetup-x64.exe)
         shell: pwsh
         run: |
           .\build\native\fast.exe --help
-          Copy-Item build\native\fast.exe build\native\fast-windows-x64.exe -Force
-          $hash = (Get-FileHash build\native\fast-windows-x64.exe -Algorithm SHA256).Hash.ToLowerInvariant()
-          [System.IO.File]::WriteAllText("$PWD\build\native\SHA256SUMS.txt", "$hash  fast-windows-x64.exe")
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+          }
+          & $iscc installer\jolt.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Upload Artifact
+      - name: Generate SHA256SUMS.txt
+        shell: pwsh
+        run: |
+          Copy-Item build\native\fast.exe build\native\fast-windows-x64.exe -Force
+          $setupHash = (Get-FileHash build\native\JoltSetup-x64.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          $exeHash   = (Get-FileHash build\native\fast-windows-x64.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          $sums = "$setupHash  JoltSetup-x64.exe`n$exeHash  fast-windows-x64.exe`n"
+          [System.IO.File]::WriteAllText("$PWD\build\native\SHA256SUMS.txt", $sums)
+
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: jolt-windows-x64
           path: |
+            build/native/JoltSetup-x64.exe
             build/native/fast-windows-x64.exe
             build/native/SHA256SUMS.txt
 
@@ -75,5 +88,6 @@ jobs:
         with:
           generate_release_notes: true
           files: |
+            build/native/JoltSetup-x64.exe
             build/native/fast-windows-x64.exe
             build/native/SHA256SUMS.txt
