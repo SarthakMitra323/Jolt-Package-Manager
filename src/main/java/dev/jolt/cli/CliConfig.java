@@ -14,6 +14,8 @@ public final class CliConfig {
     public final List<String> targets;
     public final Path venvPath;
     public final Path requirementsFile;
+    public final List<String> extras;
+    public final boolean allExtras;
     public final boolean quiet;
     public final boolean verbose;
     public final boolean noCache;
@@ -24,6 +26,8 @@ public final class CliConfig {
             List<String> targets,
             Path venvPath,
             Path requirementsFile,
+            List<String> extras,
+            boolean allExtras,
             boolean quiet,
             boolean verbose,
             boolean noCache,
@@ -32,6 +36,8 @@ public final class CliConfig {
         this.targets = Collections.unmodifiableList(targets);
         this.venvPath = venvPath;
         this.requirementsFile = requirementsFile;
+        this.extras = Collections.unmodifiableList(extras);
+        this.allExtras = allExtras;
         this.quiet = quiet;
         this.verbose = verbose;
         this.noCache = noCache;
@@ -40,11 +46,13 @@ public final class CliConfig {
 
     public static CliConfig parse(String[] args) {
         if (args.length == 0) {
-            return new CliConfig(Command.HELP, List.of(), null, null, false, false, false, 16);
+            return new CliConfig(Command.HELP, List.of(), null, null, List.of(), false, false, false, false, 16);
         }
 
         Command cmd = null;
         List<String> targets = new ArrayList<>(Math.max(4, args.length));
+        List<String> extras = new ArrayList<>();
+        boolean allExtras = false;
         Path venvPath = null;
         Path reqFile = null;
         boolean quiet = false;
@@ -55,12 +63,21 @@ public final class CliConfig {
         for (int i = 0; i < args.length; i++) {
             String arg = args[i];
             if (arg.startsWith("-")) {
+                if (arg.startsWith("--extra=")) {
+                    addExtras(arg.substring("--extra=".length()), extras);
+                    continue;
+                }
                 switch (arg) {
                     case "-q", "--quiet" -> quiet = true;
                     case "-v", "--verbose" -> verbose = true;
                     case "--no-cache" -> noCache = true;
+                    case "--all-extras" -> allExtras = true;
                     case "-h", "--help" -> {
-                        return new CliConfig(Command.HELP, List.of(), null, null, false, false, false, concurrency);
+                        return new CliConfig(Command.HELP, List.of(), null, null, List.of(), false, false, false, false, concurrency);
+                    }
+                    case "--extra" -> {
+                        if (++i >= args.length) throw new IllegalArgumentException("Missing group name after --extra");
+                        addExtras(args[i], extras);
                     }
                     case "-r", "--requirement" -> {
                         if (++i >= args.length) throw new IllegalArgumentException("Missing file path after " + arg);
@@ -107,6 +124,15 @@ public final class CliConfig {
         }
 
         if (cmd == null) cmd = Command.HELP;
-        return new CliConfig(cmd, targets, venvPath, reqFile, quiet, verbose, noCache, concurrency);
+        return new CliConfig(cmd, targets, venvPath, reqFile, extras, allExtras, quiet, verbose, noCache, concurrency);
+    }
+
+    private static void addExtras(String raw, List<String> out) {
+        for (String part : raw.split(",")) {
+            String trimmed = part.trim();
+            if (!trimmed.isEmpty()) {
+                out.add(trimmed);
+            }
+        }
     }
 }
