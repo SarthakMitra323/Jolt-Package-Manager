@@ -8,7 +8,7 @@
 param(
     [string]$LocalBinary = "",
     [string]$Version = "latest",
-    [string]$Repo = "SarthakMitra323/jolt"
+    [string]$Repo = "SarthakMitra323/Jolt-Package-Manager"
 )
 
 $ErrorActionPreference = "Stop"
