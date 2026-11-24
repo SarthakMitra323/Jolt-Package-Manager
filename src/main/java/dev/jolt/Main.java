@@ -2,6 +2,7 @@ package dev.jolt;
 
 import dev.jolt.cache.BinaryMetaCache;
 import dev.jolt.cli.CliConfig;
+import dev.jolt.cli.PyprojectParser;
 import dev.jolt.cli.RequirementsParser;
 import dev.jolt.cli.SelfUpdater;
 import dev.jolt.env.PythonEnvironment;
@@ -22,6 +23,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 public final class Main {
@@ -141,27 +143,62 @@ public final class Main {
             }
         }
 
-        Path reqFile = (config.requirementsFile != null ? config.requirementsFile : Path.of("requirements.txt"))
-                .toAbsolutePath().normalize();
+        boolean wantsExtras = config.allExtras || !config.extras.isEmpty();
+        Path depFile;
+        boolean isPyproject;
 
-        if (!Files.isRegularFile(reqFile)) {
-            if (!config.quiet) {
-                System.out.println("No requirements.txt found. Project environment is ready.");
+        if (config.requirementsFile != null) {
+            depFile = config.requirementsFile.toAbsolutePath().normalize();
+            if (!Files.isRegularFile(depFile)) {
+                throw new IOException("Dependency file not found: " + depFile);
             }
-            return;
+            isPyproject = depFile.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".toml");
+            if (wantsExtras && !isPyproject) {
+                throw new IllegalArgumentException("--extra / --all-extras is only supported with pyproject.toml");
+            }
+        } else {
+            Path reqTxt = Path.of("requirements.txt").toAbsolutePath().normalize();
+            Path pyproject = Path.of("pyproject.toml").toAbsolutePath().normalize();
+            if (wantsExtras) {
+                if (!Files.isRegularFile(pyproject)) {
+                    throw new IllegalArgumentException("--extra / --all-extras requires a pyproject.toml in the current directory");
+                }
+                depFile = pyproject;
+                isPyproject = true;
+            } else if (Files.isRegularFile(reqTxt)) {
+                depFile = reqTxt;
+                isPyproject = false;
+            } else if (Files.isRegularFile(pyproject)) {
+                depFile = pyproject;
+                isPyproject = true;
+            } else {
+                if (!config.quiet) {
+                    System.out.println("No requirements.txt or pyproject.toml found. Project environment is ready.");
+                }
+                return;
+            }
         }
 
-        List<String> specs = RequirementsParser.parseFile(reqFile);
+        List<String> specs = isPyproject
+                ? PyprojectParser.parseDependencies(depFile, config.extras, config.allExtras)
+                : RequirementsParser.parseFile(depFile);
+
         if (specs.isEmpty()) {
             if (!config.quiet) {
-                System.out.println("Found empty " + reqFile.getFileName() + ". Project environment is ready.");
+                System.out.println("No dependencies found in " + depFile.getFileName() + ". Project environment is ready.");
             }
             return;
         }
 
         if (!config.quiet) {
-            System.out.printf("Detected %s (%d requirements) -> installing into %s...%n",
-                    reqFile.getFileName(), specs.size(), env.rootDir().getFileName());
+            String extraSuffix = "";
+            if (config.allExtras) {
+                extraSuffix = ", all extras";
+            } else if (!config.extras.isEmpty()) {
+                extraSuffix = ", extras: " + config.extras;
+            }
+            System.out.printf("Detected %s (%d requirements%s) -> installing into %s...%n",
+                    depFile.getFileName(), specs.size(), extraSuffix, env.rootDir().getFileName());
         }
 
         Path cacheRoot = resolveDefaultCacheDir(env);
@@ -176,7 +213,11 @@ public final class Main {
 
         List<String> specs = new ArrayList<>(config.targets);
         if (config.requirementsFile != null) {
-            specs.addAll(RequirementsParser.parseFile(config.requirementsFile));
+            if (config.requirementsFile.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".toml")) {
+                specs.addAll(PyprojectParser.parseDependencies(config.requirementsFile, config.extras, config.allExtras));
+            } else {
+                specs.addAll(RequirementsParser.parseFile(config.requirementsFile));
+            }
         }
 
         if (specs.isEmpty() && isUpdate) {
@@ -282,7 +323,7 @@ public final class Main {
                   fast <COMMAND> [OPTIONS] [ARGS...]
                 
                 COMMANDS:
-                  init [reqs.txt]        Create .venv and install requirements.txt in one step
+                  init [file]            Create .venv and install requirements.txt or pyproject.toml
                   venv [path]            Create a new virtual environment (default: .venv)
                   install <pkg...>       Install packages into active virtual environment
                   uninstall <pkg...>     Remove packages from active virtual environment
@@ -292,6 +333,14 @@ public final class Main {
                   freeze                 Output installed packages in requirements format
                   cache clear            Purge global metadata and unpacked wheel caches
                   self-update            Update fast.exe from GitHub Releases (SHA-256 verified)
+                
+                OPTIONS:
+                  --extra <group>        Install optional-dependencies group from pyproject.toml
+                  --all-extras           Install all optional-dependencies groups from pyproject.toml
+                  -r, --requirement      Install from a requirements.txt or pyproject.toml file
+                  -p, --venv <path>      Target virtual environment directory
+                  -q, --quiet            Suppress status output
+                  -v, --verbose          Print diagnostic timing details
                 """);
     }
 }
