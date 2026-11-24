@@ -64,8 +64,13 @@
         <h1>Jolt (<span class="gradient-text">fast</span>) Documentation</h1>
         <p>Jolt is a standalone, zero-dependency Python package installer, virtual environment creator, and PubGrub dependency resolver written in pure Java 21 and compiled ahead-of-time to native machine code via GraalVM Native Image.</p>
 
-        <h3>Install on Windows (Recommended)</h3>
-        <p>Installs <span class="inline-code">fast.exe</span> into <span class="inline-code">%LOCALAPPDATA%\jolt\bin</span>, verifies its SHA-256 hash against <span class="inline-code">SHA256SUMS.txt</span>, and adds it to your User PATH—no Administrator rights needed.</p>
+        <h3>Install on Windows (Recommended — GUI Installer)</h3>
+        <p>Download and double-click <span class="inline-code">JoltSetup-x64.exe</span>. No Administrator rights or terminal commands required—it installs to <span class="inline-code">%LOCALAPPDATA%\jolt\bin</span>, adds <span class="inline-code">fast</span> to your User PATH, and registers a standard uninstaller in Windows Settings.</p>
+        <p style="margin-bottom: 18px;">
+          <a href="https://github.com/SarthakMitra323/Jolt-Package-Manager/releases/latest/download/JoltSetup-x64.exe" class="btn btn-primary btn-sm">⬇ Download JoltSetup-x64.exe</a>
+        </p>
+
+        <h3>Alternative: PowerShell One-Liner</h3>
         <div class="code-block">
           <button class="copy-btn" data-copy="irm https://raw.githubusercontent.com/SarthakMitra323/Jolt-Package-Manager/main/install.ps1 | iex">Copy</button>
           <pre>irm https://raw.githubusercontent.com/SarthakMitra323/Jolt-Package-Manager/main/install.ps1 | iex</pre>

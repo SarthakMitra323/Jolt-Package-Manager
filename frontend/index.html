@@ -55,12 +55,13 @@
               Jolt (<span class="inline-code">fast</span>) is an independent Python package installer, virtual environment creator, and PubGrub resolver. 10–18× faster than <span class="inline-code">pip</span> and beating Rust's <span class="inline-code">uv</span> on warm web stacks—without a single line of Rust or C.
             </p>
             <div class="hero-cta hero-anim">
-              <a href="#download" class="btn btn-primary">⚡ Download for Windows</a>
+              <a href="https://github.com/SarthakMitra323/Jolt-Package-Manager/releases/latest/download/JoltSetup-x64.exe" class="btn btn-primary" data-dl-trigger="true">
+                ⬇ Download for Windows <span style="opacity:0.75;font-weight:500;font-size:0.82rem;">(x64 Installer)</span>
+              </a>
               <a href="docs.html" class="btn btn-glass">Read the Docs →</a>
             </div>
-            <div class="cmd-bar hero-anim">
-              <code><span class="cmd-prompt">PS&gt;</span>irm https://raw.githubusercontent.com/SarthakMitra323/Jolt-Package-Manager/main/install.ps1 | iex</code>
-              <button class="copy-btn" data-copy="irm https://raw.githubusercontent.com/SarthakMitra323/Jolt-Package-Manager/main/install.ps1 | iex">Copy</button>
+            <div class="hero-anim" style="font-size: 0.84rem; color: var(--muted);">
+              Windows 10 / 11 (64-bit) · User Installer (No Admin required) · <a href="#download" style="color: var(--cyan); text-decoration: underline;">Portable .exe &amp; PowerShell options</a>
             </div>
           </div>
 
@@ -189,54 +190,51 @@
 
         <div class="download-grid">
           <div class="dl-card featured reveal">
-            <h3>Recommended: Secure One-Line Installer (Windows)</h3>
-            <p>Downloads the latest verified release from GitHub Releases, checks cryptographic SHA-256 integrity, and registers <span class="inline-code">fast</span> globally on your User PATH.</p>
-            <div class="cmd-bar" style="max-width: 100%;">
-              <code><span class="cmd-prompt">PS&gt;</span>irm https://raw.githubusercontent.com/SarthakMitra323/Jolt-Package-Manager/main/install.ps1 | iex</code>
-              <button class="copy-btn" data-copy="irm https://raw.githubusercontent.com/SarthakMitra323/Jolt-Package-Manager/main/install.ps1 | iex">Copy</button>
+            <h3>Windows User Installer (Recommended)</h3>
+            <p>Just like installing VS Code—download <span class="inline-code">JoltSetup-x64.exe</span>, double-click, and click <strong>Install</strong>. No terminal commands and no Administrator prompt needed.</p>
+            <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom: 18px;">
+              <a href="https://github.com/SarthakMitra323/Jolt-Package-Manager/releases/latest/download/JoltSetup-x64.exe" class="btn btn-primary" data-dl-trigger="true">
+                ⬇ Download JoltSetup-x64.exe
+              </a>
+              <a href="https://github.com/SarthakMitra323/Jolt-Package-Manager/releases/latest/download/SHA256SUMS.txt" class="btn btn-glass" target="_blank" rel="noopener">
+                SHA-256 Checksum
+              </a>
             </div>
             <ul class="security-list">
-              <li>No Admin / UAC elevation</li>
-              <li>Mandatory SHA-256 check</li>
-              <li>TLS 1.2+ enforced</li>
+              <li>Double-click setup wizard</li>
+              <li>No Admin / UAC required</li>
+              <li>Auto-registers <span class="inline-code">fast</span> on PATH</li>
+              <li>Uninstall via Windows Settings</li>
               <li>Zero services or telemetry</li>
-              <li>Clean <span class="inline-code">uninstall.ps1</span></li>
               <li>Built-in <span class="inline-code">fast self-update</span></li>
             </ul>
           </div>
 
           <div class="dl-card reveal">
-            <h3>Direct Downloads (GitHub Releases)</h3>
-            <p>Prefer manual verification or offline installation? Grab the standalone executable and checksums directly:</p>
+            <h3>Other Download Options</h3>
+            <p>Prefer a portable binary or terminal install?</p>
             <div class="asset-list">
-              <a class="asset-row" href="https://github.com/SarthakMitra323/Jolt-Package-Manager/releases/latest/download/fast-windows-x64.exe" target="_blank" rel="noopener">
+              <a class="asset-row" href="https://github.com/SarthakMitra323/Jolt-Package-Manager/releases/latest/download/fast-windows-x64.exe" data-dl-trigger="true">
                 <div>
                   <div class="asset-name">fast-windows-x64.exe</div>
-                  <div class="asset-desc">Standalone Native Windows x64 Binary</div>
+                  <div class="asset-desc">Portable standalone binary (no installer)</div>
                 </div>
-                <span class="btn btn-primary btn-sm">Download</span>
-              </a>
-              <a class="asset-row" href="https://github.com/SarthakMitra323/Jolt-Package-Manager/releases/latest/download/SHA256SUMS.txt" target="_blank" rel="noopener">
-                <div>
-                  <div class="asset-name">SHA256SUMS.txt</div>
-                  <div class="asset-desc">Cryptographic release checksums</div>
-                </div>
-                <span class="btn btn-glass btn-sm">Verify</span>
-              </a>
-              <a class="asset-row" href="https://raw.githubusercontent.com/SarthakMitra323/Jolt-Package-Manager/main/install.ps1" target="_blank" rel="noopener">
-                <div>
-                  <div class="asset-name">install.ps1 &amp; uninstall.ps1</div>
-                  <div class="asset-desc">Auditable PowerShell installer scripts</div>
-                </div>
-                <span class="btn btn-glass btn-sm">Inspect</span>
+                <span class="btn btn-glass btn-sm">Download</span>
               </a>
               <a class="asset-row" href="https://github.com/SarthakMitra323/Jolt-Package-Manager/releases" target="_blank" rel="noopener">
                 <div>
-                  <div class="asset-name">All Releases</div>
-                  <div class="asset-desc">Release notes &amp; version history</div>
+                  <div class="asset-name">GitHub Releases</div>
+                  <div class="asset-desc">All versions, release notes &amp; SHA256SUMS.txt</div>
                 </div>
                 <span class="btn btn-glass btn-sm">Browse →</span>
               </a>
+            </div>
+            <div style="margin-top: 18px;">
+              <div style="font-size: 0.8rem; color: var(--muted); margin-bottom: 8px;">Optional: PowerShell one-liner (for developers)</div>
+              <div class="cmd-bar" style="max-width: 100%; padding: 9px 12px;">
+                <code><span class="cmd-prompt">PS&gt;</span>irm https://raw.githubusercontent.com/SarthakMitra323/Jolt-Package-Manager/main/install.ps1 | iex</code>
+                <button class="copy-btn" data-copy="irm https://raw.githubusercontent.com/SarthakMitra323/Jolt-Package-Manager/main/install.ps1 | iex">Copy</button>
+              </div>
             </div>
           </div>
         </div>

@@ -291,4 +291,10 @@
     );
     docSections.forEach((sec) => observer.observe(sec));
   }
+  document.querySelectorAll("[data-dl-trigger]").forEach((link) => {
+    link.addEventListener("click", () => {
+      showToast("Downloading Jolt installer — double-click to install!");
+    });
+  });
+
 })();
