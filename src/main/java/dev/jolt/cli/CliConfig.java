@@ -7,7 +7,7 @@ import java.util.List;
 
 public final class CliConfig {
     public enum Command {
-        INSTALL, UNINSTALL, UPDATE, LIST, CACHE_CLEAR, SYNC, FREEZE, VENV, INIT, HELP
+        INSTALL, UNINSTALL, UPDATE, LIST, CACHE_CLEAR, SYNC, FREEZE, VENV, INIT, SELF_UPDATE, HELP
     }
 
     public final Command command;
@@ -86,6 +86,7 @@ public final class CliConfig {
                     case "freeze" -> Command.FREEZE;
                     case "venv" -> Command.VENV;
                     case "init" -> Command.INIT;
+                    case "self-update", "selfupdate" -> Command.SELF_UPDATE;
                     case "cache" -> {
                         if (i + 1 < args.length && "clear".equals(args[i + 1])) {
                             i++;
