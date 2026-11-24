@@ -4,6 +4,7 @@ import dev.jolt.cache.BinaryMetaCache;
 import dev.jolt.cli.CliConfig;
 import dev.jolt.cli.PyprojectParser;
 import dev.jolt.cli.RequirementsParser;
+import dev.jolt.cli.RequirementsParser.ParsedRequirements;
 import dev.jolt.cli.SelfUpdater;
 import dev.jolt.env.PythonEnvironment;
 import dev.jolt.env.VenvCreator;
@@ -24,6 +25,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 public final class Main {
@@ -95,8 +97,9 @@ public final class Main {
             }
 
             switch (config.command) {
-                case INSTALL, SYNC -> runInstall(config, env, cacheRoot, false);
-                case UPDATE -> runInstall(config, env, cacheRoot, true);
+                case INSTALL -> runInstall(config, env, cacheRoot, false, false);
+                case SYNC    -> runInstall(config, env, cacheRoot, false, true);
+                case UPDATE  -> runInstall(config, env, cacheRoot, true, false);
                 case UNINSTALL -> EnvironmentManager.uninstallPackages(env, config.targets, config.quiet);
                 case LIST -> {
                     List<InstalledDist> dists = EnvironmentManager.listInstalled(env);
@@ -179,9 +182,18 @@ public final class Main {
             }
         }
 
-        List<String> specs = isPyproject
-                ? PyprojectParser.parseDependencies(depFile, config.extras, config.allExtras)
-                : RequirementsParser.parseFile(depFile);
+        List<String> specs;
+        Map<String, Set<String>> allowedHashes = Map.of();
+        boolean hashMode = false;
+
+        if (isPyproject) {
+            specs = PyprojectParser.parseDependencies(depFile, config.extras, config.allExtras);
+        } else {
+            ParsedRequirements parsedReqs = RequirementsParser.parseFileWithHashes(depFile);
+            specs = parsedReqs.specs();
+            allowedHashes = parsedReqs.allowedHashesByPkg();
+            hashMode = parsedReqs.hashCheckingMode();
+        }
 
         if (specs.isEmpty()) {
             if (!config.quiet) {
@@ -202,21 +214,28 @@ public final class Main {
         }
 
         Path cacheRoot = resolveDefaultCacheDir(env);
-        installSpecs(specs, config, env, cacheRoot, false);
+        installSpecs(specs, config, env, cacheRoot, false, false, allowedHashes, hashMode);
     }
 
     private static void runInstall(
             CliConfig config,
             PythonEnvironment env,
             Path cacheRoot,
-            boolean isUpdate) throws IOException {
+            boolean isUpdate,
+            boolean isSync) throws IOException {
 
         List<String> specs = new ArrayList<>(config.targets);
+        Map<String, Set<String>> allowedHashes = Map.of();
+        boolean hashMode = false;
+
         if (config.requirementsFile != null) {
             if (config.requirementsFile.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".toml")) {
                 specs.addAll(PyprojectParser.parseDependencies(config.requirementsFile, config.extras, config.allExtras));
             } else {
-                specs.addAll(RequirementsParser.parseFile(config.requirementsFile));
+                ParsedRequirements parsedReqs = RequirementsParser.parseFileWithHashes(config.requirementsFile);
+                specs.addAll(parsedReqs.specs());
+                allowedHashes = parsedReqs.allowedHashesByPkg();
+                hashMode = parsedReqs.hashCheckingMode();
             }
         }
 
@@ -227,10 +246,14 @@ public final class Main {
         }
 
         if (specs.isEmpty()) {
+            if (isSync) {
+                pruneExtraneousPackages(env, Set.of(), config.quiet);
+                return;
+            }
             throw new IllegalArgumentException("Please provide at least one package or -r <requirements.txt>");
         }
 
-        installSpecs(specs, config, env, cacheRoot, isUpdate);
+        installSpecs(specs, config, env, cacheRoot, isUpdate, isSync, allowedHashes, hashMode);
     }
 
     private static void installSpecs(
@@ -238,7 +261,10 @@ public final class Main {
             CliConfig config,
             PythonEnvironment env,
             Path cacheRoot,
-            boolean isUpdate) throws IOException {
+            boolean isUpdate,
+            boolean isSync,
+            Map<String, Set<String>> allowedHashes,
+            boolean hashCheckingMode) throws IOException {
 
         Set<String> explicitNames = new HashSet<>(specs.size());
         for (String s : specs) {
@@ -258,6 +284,29 @@ public final class Main {
 
         if (!config.quiet) {
             System.out.printf("Resolved %d packages in %d ms%n", resolved.size(), resolveMs);
+        }
+
+        // Strict --hash lockfile enforcement BEFORE downloading or linking
+        if (hashCheckingMode) {
+            for (ResolvedPackage rp : resolved) {
+                String norm = RequirementsParser.normalizePkgName(rp.name());
+                Set<String> allowed = allowedHashes.get(norm);
+                if (allowed == null || allowed.isEmpty()) {
+                    throw new SecurityException(
+                            "Hash-checking mode is active, but no --hash was provided for resolved package: "
+                                    + rp.name() + "==" + rp.version());
+                }
+                String actualSha256 = rp.wheelArtifact().sha256();
+                if (actualSha256 == null || !allowed.contains(actualSha256.toLowerCase(Locale.ROOT))) {
+                    throw new SecurityException(
+                            "SECURITY ABORT: Hash mismatch for " + rp.name() + "==" + rp.version()
+                                    + "\n  Actual wheel SHA-256: " + actualSha256
+                                    + "\n  Allowed lockfile hashes: " + allowed);
+                }
+            }
+            if (!config.quiet) {
+                System.out.printf("Verified lockfile SHA-256 hashes for %d packages%n", resolved.size());
+            }
         }
 
         long dlStart = System.nanoTime();
@@ -281,6 +330,34 @@ public final class Main {
             } else {
                 System.out.printf("Installed %d packages (%d files linked) in %d ms%n",
                         unpacked.size(), filesLinked, linkMs);
+            }
+        }
+
+        // True 'fast sync': uninstall extraneous packages not in the resolved graph
+        if (isSync) {
+            Set<String> keepNormalized = new HashSet<>(resolved.size() * 2);
+            for (ResolvedPackage rp : resolved) {
+                keepNormalized.add(RequirementsParser.normalizePkgName(rp.name()));
+            }
+            pruneExtraneousPackages(env, keepNormalized, config.quiet);
+        }
+    }
+
+    private static void pruneExtraneousPackages(
+            PythonEnvironment env,
+            Set<String> keepNormalized,
+            boolean quiet) throws IOException {
+        List<String> toUninstall = new ArrayList<>();
+        for (InstalledDist installed : EnvironmentManager.listInstalled(env)) {
+            String norm = RequirementsParser.normalizePkgName(installed.name());
+            if (!keepNormalized.contains(norm)) {
+                toUninstall.add(installed.name());
+            }
+        }
+        if (!toUninstall.isEmpty()) {
+            EnvironmentManager.uninstallPackages(env, toUninstall, quiet);
+            if (!quiet) {
+                System.out.printf("Synced environment: removed %d extraneous package(s)%n", toUninstall.size());
             }
         }
     }
@@ -327,7 +404,7 @@ public final class Main {
                   venv [path]            Create a new virtual environment (default: .venv)
                   install <pkg...>       Install packages into active virtual environment
                   uninstall <pkg...>     Remove packages from active virtual environment
-                  sync <reqs.txt>        Synchronize environment with requirements.txt
+                  sync <reqs.txt>        Synchronize environment (install missing & prune extraneous)
                   update [pkg...]        Update all or specified packages
                   list                   List installed packages
                   freeze                 Output installed packages in requirements format

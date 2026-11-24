@@ -152,8 +152,9 @@ public final class PubGrubSolver {
                     );
                 }
                 DecisionFrame culprit = trail.pop();
-                domains = culprit.domainsSnapshot;
-                decided = culprit.decidedSnapshot;
+                int targetCap = Math.max(domains.length, Math.max(culprit.domainsSnapshot.length, idToPkg.size()));
+                domains = Arrays.copyOf(culprit.domainsSnapshot, targetCap);
+                decided = Arrays.copyOf(culprit.decidedSnapshot, targetCap);
                 domains[culprit.decidedPkgId].clear(culprit.chosenVerIdx);
                 continue;
             }
@@ -254,8 +255,9 @@ public final class PubGrubSolver {
 
             if (conflictTriggered) {
                 DecisionFrame failedFrame = trail.pop();
-                domains = failedFrame.domainsSnapshot;
-                decided = failedFrame.decidedSnapshot;
+                int targetCap = Math.max(domains.length, Math.max(failedFrame.domainsSnapshot.length, idToPkg.size()));
+                domains = Arrays.copyOf(failedFrame.domainsSnapshot, targetCap);
+                decided = Arrays.copyOf(failedFrame.decidedSnapshot, targetCap);
                 domains[failedFrame.decidedPkgId].clear(failedFrame.chosenVerIdx);
             }
         }
