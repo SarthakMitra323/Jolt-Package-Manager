@@ -15,7 +15,7 @@ import java.util.concurrent.Executors;
 import java.util.zip.GZIPInputStream;
 
 public final class PyPIClient implements AutoCloseable {
-    private static final String PYPI_SIMPLE_BASE = "https://pypi.org/simple/";
+    private static final String PYPI_SIMPLE_BASE = System.getProperty("jolt.index.url", "https://pypi.org/simple/");
     private static final String PEP691_ACCEPT = "application/vnd.pypi.simple.v1+json";
 
     private final HttpClient httpClient;

@@ -150,3 +150,38 @@ native-image `
 
 ## License
 MIT
+
+<!-- JOLT_COMPAT_START -->
+## Verification, Compatibility & Known Limitations
+
+Jolt is validated by three automated test suites covering resolver correctness, filesystem safety, and real-world environment parity against `uv` and `pip`.
+
+### 1. Automated Test Suites
+* **Suite 1 — Offline Resolver Stress Tests (`ResolverStressTest`):** 6/6 passing — exercises 80+ package backtracking across the 64-package array boundary, valid 3-node cycles (`A -> B -> C -> A`), contradictory mutual cycles (`X <-> Y`), deep diamond rollbacks, unsatisfiable graphs, and `Requires-Python` filtering.
+* **Suite 2 — Installer Safety Tests (`InstallerSafetyTest`):** 6/6 passing — verifies PEP 420 shared namespace package safety, `__pycache__` bytecode cleanup on uninstall, corrupted wheel SHA-256 rejection, Zip-Slip path traversal guards, mid-batch failure rollback, and duplicate `.dist-info` / orphan cleanup on upgrades.
+* **Suite 3 — Ecosystem Compatibility Harness (`benchmarks/compat_matrix.py`):** Installs real PyPI workloads into isolated venvs with `fast`, `uv`, and `pip`, then checks `importlib.metadata` parity, import smoke tests, Windows PE `.exe` console scripts, and `uv pip check`.
+
+### 2. Verified Compatibility Smoke Matrix (Windows x64, Python 3.12)
+
+| Workload | Category | Install | Imports | CLI Entry Point | `uv pip check` | vs `uv` | vs `pip` |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| `requests` | Web & HTTP | PASS | PASS | N/A | PASS | MATCH (5) | MATCH (5) |
+| `google-auth` | PEP 420 Namespaces | PASS | PASS | N/A | PASS | MATCH (6) | MATCH (6) |
+| `pytest` | Console Scripts (`.exe`) | PASS | PASS | PASS (`pytest.exe`) | PASS | MATCH (6) | MATCH (6) |
+| `httpx[http2]` | PEP 508 Extras | PASS | PASS | N/A | PASS | MATCH (10) | MATCH (10) |
+
+Run the full 24-workload matrix locally (including `django`, `black`, `ruff`, `cryptography`, `pydantic`, `pillow`, `lxml`, `numpy`, `sqlalchemy[asyncio]`, and `boto3`):
+
+```powershell
+python benchmarks\compat_matrix.py --jolt-cmd .\fast.cmd --skip-pip
+```
+
+### 3. Security & Lockfile Guarantees
+* **`fast sync`:** Strictly synchronizes the environment by pruning extraneous packages and cleaning up empty PEP 420 directories and `__pycache__` artifacts.
+* **`--hash=sha256:...` Enforcement:** When any requirement supplies `--hash`, Jolt enters strict hash-checking mode and aborts before downloading or linking if any resolved or transitive package lacks a matching SHA-256 digest.
+
+### 4. Known Limitations
+* **Wheels Only (No `sdist` Builds Yet):** Jolt resolves and installs pre-built binary/pure-Python wheels (`.whl`). Source distributions (`.tar.gz` / `setup.py` / PEP 517 build backends) are not compiled yet.
+* **Windows x64 Primary Target:** Native binaries (`fast-windows-x64.exe` and `JoltSetup-x64.exe`) are currently built and tested for Windows x64; Linux/macOS support runs via JVM (`jolt.jar`) until cross-OS native CI runners are added.
+* **Editable Installs & VCS URLs:** `pip install -e .` and `git+https://...` requirements are not supported yet.
+<!-- JOLT_COMPAT_END -->

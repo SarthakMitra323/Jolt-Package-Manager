@@ -87,8 +87,8 @@ public final class Phase4InstallerTest {
 
         // Verify console_scripts wrapper was generated in bin/ or Scripts/
         if (mockEnv.isWindows()) {
-            assert Files.isRegularFile(mockEnv.scriptsDir().resolve("demo-cli.cmd"));
-            assert Files.isRegularFile(mockEnv.scriptsDir().resolve("demo-cli-script.py"));
+            assert Files.isRegularFile(mockEnv.scriptsDir().resolve("demo-cli.exe"));
+            assert Files.isRegularFile(mockEnv.scriptsDir().resolve("demo-cli.exe"));
         } else {
             assert Files.isRegularFile(mockEnv.scriptsDir().resolve("demo-cli"));
         }

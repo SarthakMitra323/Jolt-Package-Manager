@@ -1,7 +1,7 @@
 [Setup]
 AppId={{8F6E7C31-4A1E-4D2B-9E8A-5C2D1B7A9E04}
 AppName=Jolt Package Manager (fast)
-AppVersion=1.0.1
+AppVersion=1.0.0
 AppPublisher=Sarthak Mitra
 AppPublisherURL=https://github.com/SarthakMitra323/Jolt-Package-Manager
 AppSupportURL=https://github.com/SarthakMitra323/Jolt-Package-Manager/issues

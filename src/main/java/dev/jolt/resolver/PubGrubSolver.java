@@ -38,8 +38,9 @@ public final class PubGrubSolver {
         final int chosenVerIdx;
         final VersionBitSet[] domainsSnapshot;
         final boolean[] decidedSnapshot;
+        final Map<Integer, Set<String>> extrasSnapshot;
 
-        DecisionFrame(int pkgId, int verIdx, VersionBitSet[] domains, boolean[] decided) {
+        DecisionFrame(int pkgId, int verIdx, VersionBitSet[] domains, boolean[] decided, Map<Integer, Set<String>> extras) {
             this.decidedPkgId = pkgId;
             this.chosenVerIdx = verIdx;
             this.domainsSnapshot = new VersionBitSet[domains.length];
@@ -47,7 +48,16 @@ public final class PubGrubSolver {
                 this.domainsSnapshot[i] = domains[i] != null ? domains[i].copy() : null;
             }
             this.decidedSnapshot = decided.clone();
+            this.extrasSnapshot = copyExtrasMap(extras);
         }
+    }
+
+    private static Map<Integer, Set<String>> copyExtrasMap(Map<Integer, Set<String>> src) {
+        Map<Integer, Set<String>> copy = new java.util.HashMap<>(src.size() * 2 + 1);
+        for (Map.Entry<Integer, Set<String>> e : src.entrySet()) {
+            copy.put(e.getKey(), new java.util.HashSet<>(e.getValue()));
+        }
+        return copy;
     }
 
     private final PyPIClient pypiClient;
@@ -100,8 +110,12 @@ public final class PubGrubSolver {
         Arrays.fill(assignedVerIdx, -1);
         Arrays.fill(constrainedByPkg, -1);
 
+        Map<Integer, Set<String>> requestedExtras = new java.util.HashMap<>();
         for (Pep508Requirement rootReq : rootReqs) {
             int pkgId = internPackage(rootReq.name());
+            if (!rootReq.extras().isEmpty()) {
+                requestedExtras.computeIfAbsent(pkgId, k -> new java.util.HashSet<>()).addAll(rootReq.extras());
+            }
             if (pkgId >= domains.length) {
                 int newCap = pkgId * 2;
                 domains = Arrays.copyOf(domains, newCap);
@@ -155,11 +169,12 @@ public final class PubGrubSolver {
                 int targetCap = Math.max(domains.length, Math.max(culprit.domainsSnapshot.length, idToPkg.size()));
                 domains = Arrays.copyOf(culprit.domainsSnapshot, targetCap);
                 decided = Arrays.copyOf(culprit.decidedSnapshot, targetCap);
+                requestedExtras = copyExtrasMap(culprit.extrasSnapshot);
                 domains[culprit.decidedPkgId].clear(culprit.chosenVerIdx);
                 continue;
             }
 
-            trail.push(new DecisionFrame(nextPkg, candidateIdx, domains, decided));
+            trail.push(new DecisionFrame(nextPkg, candidateIdx, domains, decided, requestedExtras));
             decided[nextPkg] = true;
             assignedVerIdx[nextPkg] = candidateIdx;
 
@@ -177,17 +192,26 @@ public final class PubGrubSolver {
 
             Pep508Requirement[] subDeps = fetchWheelRequirements(chosenWheel.artifact());
 
+            Set<String> activeExtras = requestedExtras.getOrDefault(nextPkg, Set.of());
             for (Pep508Requirement sub : subDeps) {
-                if (sub.isApplicable(env, Set.of())) {
+                if (sub.isApplicable(env, activeExtras)) {
                     prefetchPackageIndex(sub.name());
                 }
             }
 
             boolean conflictTriggered = false;
             for (Pep508Requirement sub : subDeps) {
-                if (!sub.isApplicable(env, Set.of())) continue;
+                if (!sub.isApplicable(env, activeExtras)) continue;
 
                 int depId = internPackage(sub.name());
+                if (!sub.extras().isEmpty()) {
+                    boolean addedNewExtra = requestedExtras
+                            .computeIfAbsent(depId, k -> new java.util.HashSet<>())
+                            .addAll(sub.extras());
+                    if (addedNewExtra && depId < decided.length && decided[depId]) {
+                        decided[depId] = false;
+                    }
+                }
                 if (depId >= domains.length) {
                     int newCap = Math.max(depId + 16, domains.length * 2);
                     domains = Arrays.copyOf(domains, newCap);
@@ -258,6 +282,7 @@ public final class PubGrubSolver {
                 int targetCap = Math.max(domains.length, Math.max(failedFrame.domainsSnapshot.length, idToPkg.size()));
                 domains = Arrays.copyOf(failedFrame.domainsSnapshot, targetCap);
                 decided = Arrays.copyOf(failedFrame.decidedSnapshot, targetCap);
+                requestedExtras = copyExtrasMap(failedFrame.extrasSnapshot);
                 domains[failedFrame.decidedPkgId].clear(failedFrame.chosenVerIdx);
             }
         }

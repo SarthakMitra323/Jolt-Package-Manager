@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """
-Rigorous Benchmark & Verification Suite: jolt vs. uv vs. pip
-- Invokes java.exe directly with AppCDS (no cmd.exe wrapper overhead)
-- Separates Cold Install, True Warm Install (Clean Venv), and Warm Audit (Already Installed)
-- Reports Median, p95, and Internal Engine Time (Resolve + Unpack + Link)
-- Verifies that jolt, uv, and pip produce identical installed package sets in site-packages
+Head-to-Head Benchmark Suite: jolt (Native fast.exe) vs. uv (Rust)
+- Removes pip completely for faster, focused native-vs-native runs
+- Measures Cold Install, Warm Install (Median & p95), Internal Engine Time, and Warm Audit
+- Verifies installed environment equivalence between fast.exe and uv
 """
 import math
 import os
@@ -20,27 +19,8 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 BENCH_WORK_DIR = ROOT_DIR / "build" / "bench-work"
 JOLT_CACHE_DIR = BENCH_WORK_DIR / "jolt-cache"
 UV_CACHE_DIR = BENCH_WORK_DIR / "uv-cache"
-PIP_CACHE_DIR = BENCH_WORK_DIR / "pip-cache"
 
 NATIVE_EXE = ROOT_DIR / "build" / "native" / "fast.exe"
-JOLT_JAR = ROOT_DIR / "build" / "jolt.jar"
-JOLT_JSA = ROOT_DIR / "build" / "jolt.jsa"
-
-
-def get_jolt_base_cmd():
-    if NATIVE_EXE.exists():
-        return [str(NATIVE_EXE)], "jolt (Native .exe)"
-    if JOLT_JSA.exists():
-        return [
-            "java",
-            f"-XX:SharedArchiveFile={JOLT_JSA}",
-            "-XX:TieredStopAtLevel=1",
-            "-XX:+UseSerialGC",
-            "-Xms32m",
-            "-cp", str(JOLT_JAR),
-            "dev.jolt.Main"
-        ], "jolt (AppCDS Direct)"
-    return ["java", "-cp", str(JOLT_JAR), "dev.jolt.Main"], "jolt (JVM)"
 
 
 def p95(values):
@@ -128,11 +108,10 @@ def benchmark_workload(title, packages, runs_warm=8):
     venv_dir = BENCH_WORK_DIR / "venv"
     py_exe = venv_dir / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
 
-    jolt_cmd_prefix, jolt_label = get_jolt_base_cmd()
-    tools = [(jolt_label, "jolt")]
-    if shutil.which("uv"):
-        tools.append(("uv (Rust)", "uv"))
-    tools.append(("pip (Python)", "pip"))
+    tools = [
+        ("jolt (fast.exe)", "jolt"),
+        ("uv (Rust)", "uv"),
+    ]
 
     results = []
     installed_snapshots = {}
@@ -141,29 +120,24 @@ def benchmark_workload(title, packages, runs_warm=8):
         reset_venv_packages(venv_dir)
         if kind == "jolt":
             shutil.rmtree(JOLT_CACHE_DIR, ignore_errors=True)
-            cmd = jolt_cmd_prefix + ["install"] + packages + ["-p", str(venv_dir), "-v"]
+            cmd = [str(NATIVE_EXE), "install"] + packages + ["-p", str(venv_dir), "-v"]
             env = {"JOLT_CACHE_DIR": str(JOLT_CACHE_DIR)}
-        elif kind == "uv":
+        else:
             shutil.rmtree(UV_CACHE_DIR, ignore_errors=True)
             cmd = ["uv", "pip", "install"] + packages + ["--python", str(py_exe), "--cache-dir", str(UV_CACHE_DIR)]
             env = {}
-        else:
-            shutil.rmtree(PIP_CACHE_DIR, ignore_errors=True)
-            cmd = [str(py_exe), "-m", "pip", "install"] + packages + ["--cache-dir", str(PIP_CACHE_DIR), "-q"]
-            env = {}
 
         # 1. Cold Install
-        print(f" -> {label:21s} [Cold Install]...", end="", flush=True)
+        print(f" -> {label:18s} [Cold Install]...", end="", flush=True)
         cold_wall, cold_eng = run_timed(cmd, env)
         eng_str = f" (Engine: {cold_eng} ms)" if cold_eng is not None else ""
         print(f" {cold_wall:7.1f} ms{eng_str}")
 
-        # Verify installed packages snapshot
         installed_snapshots[kind] = inspect_installed_packages(venv_dir)
 
         # 2. Warm Install (Clean Venv, Warm Cache)
         warm_walls, warm_engs = [], []
-        print(f" -> {label:21s} [Warm Install x{runs_warm}]...", end="", flush=True)
+        print(f" -> {label:18s} [Warm Install x{runs_warm}]...", end="", flush=True)
         for _ in range(runs_warm):
             reset_venv_packages(venv_dir)
             w_wall, w_eng = run_timed(cmd, env)
@@ -198,24 +172,33 @@ def benchmark_workload(title, packages, runs_warm=8):
             "audit_eng": med_audit_eng,
         })
 
-    # Verify environment equivalence
+    # Verify environment equivalence between fast.exe and uv
     jolt_pkgs = installed_snapshots.get("jolt", {})
-    uv_pkgs = installed_snapshots.get("uv", jolt_pkgs)
-    pip_pkgs = installed_snapshots.get("pip", jolt_pkgs)
-    eq_status = "MATCH" if (jolt_pkgs == uv_pkgs == pip_pkgs) else f"DIFF (jolt={len(jolt_pkgs)}, uv={len(uv_pkgs)}, pip={len(pip_pkgs)})"
+    uv_pkgs = installed_snapshots.get("uv", {})
+    eq_status = "MATCH" if (jolt_pkgs == uv_pkgs) else f"DIFF (jolt={len(jolt_pkgs)}, uv={len(uv_pkgs)})"
     print(f"\n [Verification] Installed Environment Equivalence ({len(jolt_pkgs)} packages): {eq_status}")
 
-    print(f"{'Installer':<22} | {'Cold (ms)':>10} | {'Warm Med (ms)':>13} | {'Warm p95 (ms)':>13} | {'Engine Med':>10} | {'Audit Med (ms)':>14} | {'Audit Engine':>12} | {'vs pip':>7}")
-    print("-" * 120)
-    pip_warm = next((r["warm_med"] for r in results if r["kind"] == "pip"), results[-1]["warm_med"])
+    print(f"{'Installer':<18} | {'Cold (ms)':>10} | {'Warm Med (ms)':>13} | {'Warm p95 (ms)':>13} | {'Engine Med':>10} | {'Audit Med (ms)':>14} | {'Audit Engine':>12} | {'vs uv (Warm)':>12}")
+    print("-" * 122)
+    uv_warm = next(r["warm_med"] for r in results if r["kind"] == "uv")
     for r in results:
-        speedup = pip_warm / max(1.0, r["warm_med"])
+        ratio = r["warm_med"] / max(1.0, uv_warm)
+        ratio_str = "1.00x" if r["kind"] == "uv" else f"{ratio:.2f}x"
         w_eng_s = f"{r['warm_eng']:.0f} ms" if r["warm_eng"] is not None else "N/A"
         a_eng_s = f"{r['audit_eng']:.1f} ms" if r["audit_eng"] is not None else "N/A"
-        print(f"{r['label']:<22} | {r['cold_wall']:10.1f} | {r['warm_med']:13.1f} | {r['warm_p95']:13.1f} | {w_eng_s:>10} | {r['audit_med']:14.1f} | {a_eng_s:>12} | {speedup:6.1f}x")
+        print(f"{r['label']:<18} | {r['cold_wall']:10.1f} | {r['warm_med']:13.1f} | {r['warm_p95']:13.1f} | {w_eng_s:>10} | {r['audit_med']:14.1f} | {a_eng_s:>12} | {ratio_str:>12}")
 
 
 def main():
+    if not NATIVE_EXE.exists():
+        print(f"error: Native binary not found at {NATIVE_EXE}", file=sys.stderr)
+        print("Place fast.exe from GitHub Actions into build\\native\\fast.exe first.", file=sys.stderr)
+        sys.exit(1)
+
+    if not shutil.which("uv"):
+        print("error: 'uv' not found on PATH.", file=sys.stderr)
+        sys.exit(1)
+
     BENCH_WORK_DIR.mkdir(parents=True, exist_ok=True)
     venv_dir = BENCH_WORK_DIR / "venv"
     if not venv_dir.exists():

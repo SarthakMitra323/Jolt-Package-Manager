@@ -2,6 +2,9 @@ package dev.jolt.installer;
 
 import dev.jolt.env.PythonEnvironment;
 import dev.jolt.installer.DownloadEngine.UnpackedPackage;
+import dev.jolt.installer.EnvironmentManager.InstalledDist;
+import dev.jolt.net.PyPIClient;
+import java.util.HashSet;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -38,6 +41,29 @@ public final class WheelInstaller {
 
         if (toInstall.isEmpty()) {
             return 0;
+        }
+
+        // Fail fast if any wheel directory in the batch is missing before modifying existing installs
+        for (UnpackedPackage pkg : toInstall) {
+            if (!Files.isDirectory(pkg.unpackedWheelDir())) {
+                throw new IOException("Unpacked wheel directory not found for " + pkg.resolved().name()
+                        + ": " + pkg.unpackedWheelDir());
+            }
+        }
+
+        // Remove older/conflicting installed versions of packages being upgraded or reinstalled
+        Set<String> incomingNormNames = new HashSet<>(toInstall.size() * 2);
+        for (UnpackedPackage pkg : toInstall) {
+            incomingNormNames.add(PyPIClient.normalizePackageName(pkg.resolved().name()));
+        }
+        List<String> toReplace = new ArrayList<>();
+        for (InstalledDist installed : EnvironmentManager.listInstalled(env)) {
+            if (incomingNormNames.contains(installed.normalizedName())) {
+                toReplace.add(installed.name());
+            }
+        }
+        if (!toReplace.isEmpty()) {
+            EnvironmentManager.uninstallPackages(env, toReplace, true);
         }
 
         int ioThreads = Math.min(4, toInstall.size());
